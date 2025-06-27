@@ -1,115 +1,162 @@
-# Covert Agenda
+# Covert Agenda - Multiplayer Challenge Game
 
-A web-based multiplayer social deception game inspired by "Don't Get Got" where players complete secret missions without getting caught!
+A web-based multiplayer game where players complete social challenges while trying to avoid detection. Features admin controls, multiple game modes, and a retro cyberpunk aesthetic.
 
-## Features
+## 🎮 Game Modes
 
-- **Admin-controlled gameplay**: Only admins can create games and manage settings
-- **Customizable veto system**: Admins can set how many challenges players can skip
-- **QR code generation**: Easy game joining with scannable QR codes
-- **Real-time challenge system**: Players receive individual secret missions
-- **Admin play mode**: Admins can join and play in their own games
-- **Modern UI**: Beautiful dark theme with glassmorphism design
+### Open-Ended Mode
+- Admin manually ends the game when desired
+- No time or challenge limits
+- Perfect for casual play sessions
 
-## Quick Start
+### Timed Mode
+- Game automatically ends after a set duration
+- Configurable time limits (15, 30, 60, 90, or 120 minutes)
+- Adds urgency and excitement
 
-1. **Install dependencies**:
+### Winner Takes All Mode
+- Game ends when a player completes a set number of challenges
+- Configurable challenge count (3, 5, 7, 10, or 15 challenges)
+- Competitive gameplay with clear victory conditions
+
+## 🚀 Features
+
+- **Admin Controls**: Password-protected admin panel for game management
+- **QR Code Generation**: Easy game sharing with QR codes
+- **Multiple Game Modes**: Open-ended, timed, and winner-takes-all modes
+- **Veto System**: Players can veto challenges they find inappropriate
+- **Real-time Updates**: Live challenge updates and game status
+- **Retro Cyberpunk UI**: Dark purple theme with neon accents
+- **Responsive Design**: Works on desktop and mobile devices
+
+## 🛠️ Technology Stack
+
+- **Backend**: Flask (Python)
+- **Database**: SQLite (with PostgreSQL support for production)
+- **Frontend**: HTML5, CSS3, JavaScript
+- **Styling**: Custom CSS with retro cyberpunk theme
+- **Authentication**: Flask-Login
+- **QR Codes**: qrcode library
+
+## 📋 Prerequisites
+
+- Python 3.7 or higher
+- pip (Python package installer)
+
+## 🚀 Quick Start
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/mguerra-123/covert-agenda-game.git
+   cd covert-agenda-game
+   ```
+
+2. **Install dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-2. **Run the application**:
+3. **Run the application**
    ```bash
    python app.py
    ```
 
-3. **Access the game**:
-   - Open your browser to `http://localhost:5000`
-   - Use the admin password (default: `admin123`) to access admin controls
-   - Create a new game with custom settings
-   - Share the QR code or game code with players
+4. **Access the game**
+   - Open your browser and go to `http://127.0.0.1:5000`
+   - Use admin password: `admin123` (change this in production)
 
-## How to Play
+## 🎯 How to Play
 
-1. **Admin Setup**:
-   - Login with admin password
-   - Create a new game with custom veto limits
-   - Share the generated QR code with players
+### For Admins:
+1. Login with the admin password
+2. Create a new game with your preferred settings:
+   - Choose game mode (open-ended, timed, or winner takes all)
+   - Set time limit or challenge count if applicable
+   - Configure veto limits
+3. Share the game code or QR code with players
+4. Join the game to participate or monitor progress
+5. End the game when appropriate
 
-2. **Player Joining**:
-   - Scan the QR code or enter the game code
-   - Players automatically receive secret challenges
+### For Players:
+1. Join a game using the provided code or QR code
+2. Receive random challenges to complete
+3. Mark challenges as completed, failed, or veto them
+4. Try to complete challenges without other players noticing
+5. Win by completing the most challenges or meeting victory conditions
 
-3. **Gameplay**:
-   - Complete missions stealthily without getting caught
-   - Use vetoes to skip difficult challenges (limited by admin settings)
-   - Mark challenges as complete, failed, or vetoed
+## 🎨 Customization
 
-4. **Game End**:
-   - Only admins can end the game
-   - Winner is determined by most completed challenges
-   - Full statistics are displayed
+### Changing the Admin Password
+1. Access the admin menu
+2. Click "Change Admin Password"
+3. Enter the current password and new password
 
-## Admin Features
+### Adding Custom Challenges
+Edit the `SAMPLE_CHALLENGES` list in `app.py` to add your own challenges.
 
-- **Game Creation**: Set game name and veto limits
-- **QR Code Generation**: Automatic QR codes for easy joining
-- **Password Management**: Change admin password securely
-- **Game Management**: View all games and join as player
-- **Admin Play**: Participate in games while maintaining admin control
+### Styling
+Modify `static/css/style.css` to customize the game's appearance.
 
-## Technology Stack
+## 🌐 Deployment
 
-- **Backend**: Flask, SQLAlchemy, Flask-Login
-- **Frontend**: Bootstrap 5, Font Awesome, Custom CSS
-- **Database**: SQLite (with PostgreSQL support for production)
-- **QR Codes**: qrcode library with PIL
-- **Deployment**: Gunicorn, Heroku/Railway ready
+### Local Development
+```bash
+python app.py
+```
 
-## File Structure
+### Production Deployment
+1. Set environment variables:
+   - `SECRET_KEY`: A secure random string
+   - `ADMIN_PASSWORD`: Your admin password
+   - `DATABASE_URL`: Your database URL (for PostgreSQL)
+
+2. Use a production WSGI server like Gunicorn:
+   ```bash
+   pip install gunicorn
+   gunicorn app:app
+   ```
+
+## 📁 Project Structure
 
 ```
+covert-agenda-game/
 ├── app.py                 # Main Flask application
 ├── requirements.txt       # Python dependencies
 ├── static/               # Static assets
-│   ├── css/style.css     # Custom styles
-│   └── js/main.js        # JavaScript functionality
+│   ├── css/
+│   │   └── style.css     # Game styling
+│   └── js/
+│       └── main.js       # Client-side JavaScript
 ├── templates/            # HTML templates
 │   ├── base.html         # Base template
 │   ├── index.html        # Homepage
-│   ├── admin_menu.html   # Admin interface
 │   ├── game_room.html    # Game interface
 │   └── ...               # Other templates
-└── instance/             # Database files
-    └── game.db           # SQLite database
+├── instance/             # Database files (not in git)
+└── README.md            # This file
 ```
 
-## Deployment
-
-The application is ready for deployment on platforms like:
-- **Heroku**: Use the included Procfile
-- **Railway**: Automatic deployment from GitHub
-- **Render**: Use the health check endpoint
-- **Vercel**: Serverless deployment
-
-## Environment Variables
-
-- `SECRET_KEY`: Flask secret key for sessions
-- `DATABASE_URL`: Database connection string
-- `ADMIN_PASSWORD`: Admin access password
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## License
+## 📝 License
 
-This project is open source and available under the MIT License.
+This project is open source and available under the [MIT License](LICENSE).
+
+## 🐛 Issues
+
+If you encounter any issues or have suggestions, please [open an issue](https://github.com/mguerra-123/covert-agenda-game/issues) on GitHub.
+
+## 🔗 Links
+
+- [GitHub Repository](https://github.com/mguerra-123/covert-agenda-game)
+- [Live Demo](https://your-demo-url.com) (if deployed)
 
 ---
 
-**Have fun playing Covert Agenda with your friends!** 🎭 
+**Enjoy playing Covert Agenda!** 🕵️‍♀️✨ 
