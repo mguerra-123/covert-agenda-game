@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Create Game - Covert Agenda{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="hero-section mb-5 text-center">
+            <h1 class="display-4 mb-4">
+                <i class="fas fa-plus-circle me-3 text-primary"></i>Create New Game
+            </h1>
+            <p class="lead mb-4">
+                Set up a new Covert Agenda game with custom settings
+            </p>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>Game Settings
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="game_name" class="form-label">Game Name</label>
+                            <input type="text" class="form-control" id="game_name" name="game_name" 
+                                   placeholder="Enter a name for your game" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="max_vetos" class="form-label">Max Vetoes per Player</label>
+                            <select class="form-select" id="max_vetos" name="max_vetos" required>
+                                <option value="1">1 Veto</option>
+                                <option value="2">2 Vetoes</option>
+                                <option value="3" selected>3 Vetoes (Recommended)</option>
+                                <option value="5">5 Vetoes</option>
+                                <option value="10">10 Vetoes</option>
+                            </select>
+                            <div class="form-text">Number of challenges each player can skip</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Game Mode Section -->
+                    <div class="row g-3 mt-3">
+                        <div class="col-12">
+                            <label for="game_mode" class="form-label">Game Mode</label>
+                            <select class="form-select" id="game_mode" name="game_mode" required>
+                                <option value="open_ended" selected>Open-ended - Admin decides when to end</option>
+                                <option value="timed">Timed - Game ends after set time</option>
+                                <option value="winner_takes_all">Winner takes all - Game ends after X challenges</option>
+                            </select>
+                            <div class="form-text">Choose how the game will end</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Timed Mode Options -->
+                    <div class="row g-3 mt-3" id="timed_options" style="display: none;">
+                        <div class="col-md-6">
+                            <label for="game_duration" class="form-label">Game Duration</label>
+                            <select class="form-select" id="game_duration" name="game_duration">
+                                <option value="30">30 minutes</option>
+                                <option value="60" selected>1 hour</option>
+                                <option value="90">1.5 hours</option>
+                                <option value="120">2 hours</option>
+                                <option value="150">2.5 hours</option>
+                                <option value="180">3 hours</option>
+                                <option value="240">4 hours</option>
+                                <option value="300">5 hours</option>
+                            </select>
+                            <div class="form-text">How long the game will run</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Winner Takes All Mode Options -->
+                    <div class="row g-3 mt-3" id="winner_options" style="display: none;">
+                        <div class="col-md-6">
+                            <label for="challenges_to_win" class="form-label">Challenges to Win</label>
+                            <select class="form-select" id="challenges_to_win" name="challenges_to_win">
+                                <option value="3">3 challenges</option>
+                                <option value="5" selected>5 challenges</option>
+                                <option value="7">7 challenges</option>
+                                <option value="10">10 challenges</option>
+                                <option value="15">15 challenges</option>
+                                <option value="20">20 challenges</option>
+                            </select>
+                            <div class="form-text">Number of challenges needed to win</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus me-2"></i>Create Game
+                        </button>
+                        <a href="{{ url_for('admin_menu') }}" class="btn btn-outline-secondary btn-lg ms-2">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Admin Menu
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Game Features -->
+        <div class="row mt-5 g-4">
+            <div class="col-md-4">
+                <div class="card shadow h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-qrcode fa-2x text-primary mb-3"></i>
+                        <h6>QR Code Generation</h6>
+                        <p class="text-muted small">Automatically generate a QR code for easy player joining</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users fa-2x text-success mb-3"></i>
+                        <h6>Player Management</h6>
+                        <p class="text-muted small">Track players, their progress, and manage the game</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-trophy fa-2x text-warning mb-3"></i>
+                        <h6>Winner Calculation</h6>
+                        <p class="text-muted small">Automatically determine the winner when the game ends</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gameModeSelect = document.getElementById('game_mode');
+    const timedOptions = document.getElementById('timed_options');
+    const winnerOptions = document.getElementById('winner_options');
+    
+    function updateModeOptions() {
+        const selectedMode = gameModeSelect.value;
+        
+        // Hide all options first
+        timedOptions.style.display = 'none';
+        winnerOptions.style.display = 'none';
+        
+        // Show relevant options based on selection
+        if (selectedMode === 'timed') {
+            timedOptions.style.display = 'block';
+        } else if (selectedMode === 'winner_takes_all') {
+            winnerOptions.style.display = 'block';
+        }
+    }
+    
+    // Initial call
+    updateModeOptions();
+    
+    // Add event listener for changes
+    gameModeSelect.addEventListener('change', updateModeOptions);
+});
+</script>
+{% endblock %} 

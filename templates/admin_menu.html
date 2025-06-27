@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Menu - Covert Agenda{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 text-center">
+        <div class="hero-section mb-5">
+            <h1 class="display-4 mb-4">
+                <i class="fas fa-crown me-3 text-warning"></i>Admin Menu
+            </h1>
+            <p class="lead mb-4">
+                Manage games and customize settings for Covert Agenda
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card shadow h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Create New Game</h5>
+                        <p class="card-text">Start a new game with custom settings and generate a QR code for players to join.</p>
+                        <a href="{{ url_for('admin_create_game') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Create Game
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-list fa-3x text-success mb-3"></i>
+                        <h5 class="card-title">Manage Games</h5>
+                        <p class="card-text">View and manage existing games, join as a player, or end games.</p>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-success">
+                            <i class="fas fa-tachometer-alt me-2"></i>View Games
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-key fa-3x text-warning mb-3"></i>
+                        <h5 class="card-title">Change Admin Password</h5>
+                        <p class="card-text">Update the admin password for secure access.</p>
+                        <a href="{{ url_for('admin_change_password') }}" class="btn btn-warning">
+                            <i class="fas fa-key me-2"></i>Change Password
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Admin Features
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <i class="fas fa-qrcode fa-2x text-primary mb-2"></i>
+                                <h6>QR Code Generation</h6>
+                                <p class="text-muted small">Generate QR codes for easy game joining</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <i class="fas fa-sliders-h fa-2x text-success mb-2"></i>
+                                <h6>Custom Settings</h6>
+                                <p class="text-muted small">Customize veto limits and game parameters</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <i class="fas fa-gamepad fa-2x text-warning mb-2"></i>
+                                <h6>Admin Play</h6>
+                                <p class="text-muted small">Join games as a player while maintaining admin control</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-sign-out-alt me-2"></i>Logout Admin
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

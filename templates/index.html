@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Covert Agenda - Don't Get Got Style{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 text-center">
+        <div class="hero-section mb-5">
+            <h1 class="display-4 mb-4">
+                <span class="pixel-emoji me-3">🕵️</span>Covert Agenda
+            </h1>
+            <p class="lead mb-4">
+                A social deception game where you complete secret missions without getting caught!
+            </p>
+            <div class="game-description mb-4">
+                <p class="text-muted">
+                    Get sneaky challenges like "Get someone to say 'I don't know'" or "Convince someone you're from another country". 
+                    Complete them subtly without anyone realizing you're playing a game!
+                </p>
+            </div>
+        </div>
+
+        <!-- Admin Section -->
+        <div class="admin-section mb-5">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-crown me-2"></i>Admin Access
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_login') }}" class="d-flex justify-content-center">
+                        <div class="input-group" style="max-width: 300px;">
+                            <input type="password" name="admin_password" class="form-control" placeholder="Admin Password" required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt me-2"></i>Access Admin
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

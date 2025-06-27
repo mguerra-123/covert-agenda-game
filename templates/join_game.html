@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Join Game - Covert Agenda{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header text-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-sign-in-alt me-2"></i>Join Covert Agenda Game
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="game_code" class="form-label">Game Code</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-key"></i>
+                            </span>
+                            <input type="text" class="form-control text-uppercase" id="game_code" name="game_code" 
+                                   placeholder="Enter 6-digit game code" maxlength="6" required
+                                   value="{{ game_code if game_code else '' }}">
+                        </div>
+                        <div class="form-text">Ask the game admin for the 6-digit code</div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>Join Game
+                        </button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('dashboard') }}" class="text-decoration-none">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- How to Join -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-question-circle me-2"></i>How to Join a Covert Agenda Game
+                </h6>
+            </div>
+            <div class="card-body">
+                <ol class="mb-0">
+                    <li class="mb-2">Ask a friend who created a game for the 6-digit game code</li>
+                    <li class="mb-2">Enter the code in the field above</li>
+                    <li class="mb-2">Click "Join Game" to enter the game room</li>
+                    <li class="mb-0">Start receiving and completing challenges!</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

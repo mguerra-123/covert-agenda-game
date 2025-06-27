@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Create Game - Covert Agenda{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header text-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>Create New Covert Agenda Game
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="game_name" class="form-label">Game Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-gamepad"></i>
+                            </span>
+                            <input type="text" class="form-control" id="game_name" name="game_name" 
+                                   placeholder="Enter a fun name for your game" required>
+                        </div>
+                        <div class="form-text">Choose a memorable name for your game</div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus me-2"></i>Create Game
+                        </button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('dashboard') }}" class="text-decoration-none">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Game Creation Tips -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Tips for Creating a Great Game
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Choose a fun and memorable game name
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Share the game code with your friends
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        As the admin, you can end the game when ready
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-check text-success me-2"></i>
+                        The player with most completed challenges wins!
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

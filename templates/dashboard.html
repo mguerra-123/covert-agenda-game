@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Covert Agenda{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="fas fa-home me-2"></i>Welcome, {{ current_user.username }}!
+            {% if is_admin %}
+                <span class="badge bg-warning ms-2">Admin</span>
+            {% endif %}
+        </h2>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Games I Created -->
+    <div class="col-lg-6">
+        <div class="card shadow h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-crown me-2"></i>Games I Created
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if user_games %}
+                    <div class="list-group list-group-flush">
+                        {% for game in user_games %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ game.name }}</h6>
+                                    <small class="text-muted">Code: <code>{{ game.code }}</code></small>
+                                    <br>
+                                    <small class="text-muted">
+                                        {% if game.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Finished</span>
+                                        {% endif %}
+                                        <span class="badge bg-info ms-1">Max Vetoes: {{ game.max_vetos }}</span>
+                                    </small>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('game_room', game_id=game.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye me-1"></i>View
+                                    </a>
+                                    {% if is_admin %}
+                                        <a href="{{ url_for('admin_join_game', game_id=game.id) }}" class="btn btn-sm btn-success">
+                                            <i class="fas fa-gamepad me-1"></i>Join
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center py-3">You haven't created any games yet.</p>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                {% if is_admin %}
+                    <a href="{{ url_for('admin_create_game') }}" class="btn btn-primary w-100">
+                        <i class="fas fa-plus me-2"></i>Create New Game (Admin)
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('create_game') }}" class="btn btn-primary w-100">
+                        <i class="fas fa-plus me-2"></i>Create New Game
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Games I Joined -->
+    <div class="col-lg-6">
+        <div class="card shadow h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>Games I Joined
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if joined_games %}
+                    <div class="list-group list-group-flush">
+                        {% for game in joined_games %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ game.name }}</h6>
+                                    <small class="text-muted">Code: <code>{{ game.code }}</code></small>
+                                    <br>
+                                    <small class="text-muted">
+                                        {% if game.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Finished</span>
+                                        {% endif %}
+                                        <span class="badge bg-info ms-1">Max Vetoes: {{ game.max_vetos }}</span>
+                                    </small>
+                                </div>
+                                <a href="{{ url_for('game_room', game_id=game.id) }}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-play me-1"></i>Enter
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center py-3">You haven't joined any games yet.</p>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('join_game') }}" class="btn btn-success w-100">
+                    <i class="fas fa-sign-in-alt me-2"></i>Join Game
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Section (if user is admin) -->
+{% if is_admin %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-crown me-2"></i>Admin Controls
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <a href="{{ url_for('admin_menu') }}" class="btn btn-outline-warning w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4">
+                            <i class="fas fa-cog fa-2x mb-2"></i>
+                            <span>Admin Menu</span>
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ url_for('admin_create_game') }}" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4">
+                            <i class="fas fa-qrcode fa-2x mb-2"></i>
+                            <span>Create Game with QR</span>
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4">
+                            <i class="fas fa-sign-out-alt fa-2x mb-2"></i>
+                            <span>Logout Admin</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        {% if is_admin %}
+                            <a href="{{ url_for('admin_create_game') }}" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4">
+                                <i class="fas fa-plus fa-2x mb-2"></i>
+                                <span>Create Game (Admin)</span>
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('create_game') }}" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4">
+                                <i class="fas fa-plus fa-2x mb-2"></i>
+                                <span>Create New Game</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ url_for('join_game') }}" class="btn btn-outline-success w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4">
+                            <i class="fas fa-sign-in-alt fa-2x mb-2"></i>
+                            <span>Join Existing Game</span>
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-info w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4">
+                            <i class="fas fa-info-circle fa-2x mb-2"></i>
+                            <span>How to Play</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
