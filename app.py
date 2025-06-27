@@ -1268,8 +1268,5 @@ if __name__ == '__main__':
                 db.session.add(challenge)
             db.session.commit()
     
-    # Production vs Development
-    if os.environ.get('FLASK_ENV') == 'production':
-        app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-    else:
-        app.run(debug=True) 
+    # Development only - Vercel handles production
+    app.run(debug=True) 
