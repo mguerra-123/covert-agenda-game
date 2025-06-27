@@ -45,9 +45,6 @@ class Game(db.Model):
     is_finished = db.Column(db.Boolean, default=False)
     winner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     max_vetos = db.Column(db.Integer, default=3)  # New field for customizable vetos
-    game_mode = db.Column(db.String(20), default='open_ended')  # open_ended, timed, winner_takes_all
-    game_duration = db.Column(db.Integer, nullable=True)  # Duration in minutes for timed mode
-    challenges_to_win = db.Column(db.Integer, nullable=True)  # Number of challenges needed to win
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class GamePlayer(db.Model):
@@ -1005,32 +1002,8 @@ def complete_challenge(challenge_id):
     
     player_challenge.is_completed = True
     player_challenge.completed_at = datetime.utcnow()
-    
-    # Check for winner takes all mode
-    game = Game.query.get(player_challenge.game_id)
-    if game and game.game_mode == 'winner_takes_all' and game.challenges_to_win:
-        # Count completed challenges for this player
-        completed_count = PlayerChallenge.query.filter_by(
-            game_id=game.id,
-            user_id=current_user.id,
-            is_completed=True
-        ).count()
-        
-        # If player has reached the required number of challenges, end the game
-        if completed_count >= game.challenges_to_win:
-            game.is_finished = True
-            game.is_active = False
-            game.winner_id = current_user.id
-            db.session.commit()
-            
-            return jsonify({
-                'success': True,
-                'game_ended': True,
-                'winner': current_user.username,
-                'message': f'Game ended! {current_user.username} won by completing {completed_count} challenges!'
-            })
-    
     db.session.commit()
+    
     return jsonify({'success': True})
 
 @app.route('/api/veto_challenge/<int:challenge_id>', methods=['POST'])
@@ -1074,20 +1047,6 @@ def fail_challenge(challenge_id):
     
     return jsonify({'success': True})
 
-def check_timed_game_end(game):
-    """Check if a timed game should end based on its duration."""
-    if game.game_mode != 'timed' or not game.game_duration or game.is_finished:
-        return False
-    
-    # Calculate when the game should end
-    end_time = game.created_at + timedelta(minutes=game.game_duration)
-    
-    # If current time is past the end time, end the game
-    if datetime.utcnow() >= end_time:
-        return True
-    
-    return False
-
 @app.route('/api/end_game/<int:game_id>', methods=['POST'])
 @login_required
 def end_game(game_id):
@@ -1095,13 +1054,6 @@ def end_game(game_id):
     
     if game.admin_id != current_user.id:
         return jsonify({'error': 'Only admin can end the game'})
-    
-    # Check if timed game should end automatically
-    if game.game_mode == 'timed' and check_timed_game_end(game):
-        game.is_finished = True
-        game.is_active = False
-        db.session.commit()
-        return jsonify({'error': 'Game has already ended due to time limit'})
     
     # Calculate winner (player with most completed challenges)
     # Include both regular players and admin if they're also a player
@@ -1186,9 +1138,6 @@ def admin_create_game():
     if request.method == 'POST':
         game_name = request.form['game_name'].strip()
         max_vetos = int(request.form.get('max_vetos', 3))
-        game_mode = request.form.get('game_mode', 'open_ended')
-        game_duration = request.form.get('game_duration')
-        challenges_to_win = request.form.get('challenges_to_win')
         
         if len(game_name) < 3:
             flash('Game name must be at least 3 characters long')
@@ -1196,15 +1145,6 @@ def admin_create_game():
         
         if max_vetos < 0 or max_vetos > 10:
             flash('Max vetos must be between 0 and 10')
-            return redirect(url_for('admin_create_game'))
-        
-        # Validate game mode specific fields
-        if game_mode == 'timed' and not game_duration:
-            flash('Game duration is required for timed mode')
-            return redirect(url_for('admin_create_game'))
-        
-        if game_mode == 'winner_takes_all' and not challenges_to_win:
-            flash('Number of challenges to win is required for winner takes all mode')
             return redirect(url_for('admin_create_game'))
         
         game_code = generate_game_code()
@@ -1224,10 +1164,7 @@ def admin_create_game():
             name=game_name, 
             code=game_code, 
             admin_id=admin_user.id,
-            max_vetos=max_vetos,
-            game_mode=game_mode,
-            game_duration=int(game_duration) if game_duration else None,
-            challenges_to_win=int(challenges_to_win) if challenges_to_win else None
+            max_vetos=max_vetos
         )
         db.session.add(game)
         db.session.commit()
