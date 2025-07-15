@@ -1,8 +1,10 @@
 # Covert Agenda - Multiplayer Challenge Game
 
-A web-based multiplayer game where players complete social challenges while trying to avoid detection. Features admin controls, multiple game modes, and a retro cyberpunk aesthetic.
+A web-based multiplayer game where players complete social challenges while trying to avoid detection. Features admin controls and a retro cyberpunk aesthetic.
 
-## 🎮 Game Modes
+<!-- Updated for Vercel deployment with Supabase support -->
+
+## 🎮 Two Versions Available
 
 ### Open-Ended Mode
 - Admin manually ends the game when desired
