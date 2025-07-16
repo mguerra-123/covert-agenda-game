@@ -20,6 +20,25 @@
             </div>
         </div>
 
+        <!-- Player Section -->
+        <div class="player-section mb-5">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>Join a Game
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Have a game code? Join directly without creating an account!</p>
+                    <div class="d-flex justify-content-center">
+                        <a href="{{ url_for('join_game_anonymous') }}" class="btn btn-success btn-lg">
+                            <i class="fas fa-gamepad me-2"></i>Join Game
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Admin Section -->
         <div class="admin-section mb-5">
             <div class="card shadow">

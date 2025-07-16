@@ -15,7 +15,7 @@
         </div>
 
         <div class="row g-4">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card shadow h-100">
                     <div class="card-body text-center">
                         <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
@@ -27,7 +27,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card shadow h-100">
                     <div class="card-body text-center">
                         <i class="fas fa-list fa-3x text-success mb-3"></i>
@@ -39,7 +39,21 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <div class="card shadow h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-trash fa-3x text-danger mb-3"></i>
+                        <h5 class="card-title">Clear All Users</h5>
+                        <p class="card-text">Delete all players to allow usernames to be reused in new game sessions.</p>
+                        <form method="POST" action="{{ url_for('admin_clear_users') }}" style="display: inline;">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure? This will delete ALL players and allow usernames to be reused.')">
+                                <i class="fas fa-trash me-2"></i>Clear Users
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
                 <div class="card shadow h-100">
                     <div class="card-body text-center">
                         <i class="fas fa-key fa-3x text-warning mb-3"></i>
