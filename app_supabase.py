@@ -51,7 +51,7 @@ class User(UserMixin):
                     id=user_data['id'],
                     username=user_data['username'],
                     password_hash=user_data['password_hash'],
-                    is_admin=user_data.get('is_admin', False),
+                    is_admin=False,  # Default to False since we don't store this in DB
                     created_at=user_data.get('created_at')
                 )
         except Exception as e:
@@ -69,7 +69,7 @@ class User(UserMixin):
                     id=user_data['id'],
                     username=user_data['username'],
                     password_hash=user_data['password_hash'],
-                    is_admin=user_data.get('is_admin', False),
+                    is_admin=False,  # Default to False since we don't store this in DB
                     created_at=user_data.get('created_at')
                 )
         except Exception as e:
@@ -82,8 +82,7 @@ class User(UserMixin):
         try:
             response = supabase.table('users').insert({
                 'username': username,
-                'password_hash': password_hash,
-                'is_admin': False
+                'password_hash': password_hash
             }).execute()
             if response.data:
                 user_data = response.data[0]
@@ -91,7 +90,7 @@ class User(UserMixin):
                     id=user_data['id'],
                     username=user_data['username'],
                     password_hash=user_data['password_hash'],
-                    is_admin=user_data.get('is_admin', False),
+                    is_admin=False,  # Default to False since we don't store this in DB
                     created_at=user_data.get('created_at')
                 )
         except Exception as e:
@@ -254,6 +253,82 @@ class Game:
             print(f"Error getting vetoes: {e}")
             return []
 
+    def get_failed_challenges(self, user_id):
+        """Get failed challenges for a user in this game"""
+        try:
+            response = supabase.table('failed_challenges').select('*').eq('game_id', self.id).eq('user_id', user_id).execute()
+            return response.data
+        except Exception as e:
+            print(f"Error getting failed challenges: {e}")
+            return []
+
+    def get_used_challenges_in_game(self):
+        """Get all challenges that have been used in this game (by any player)"""
+        try:
+            used_challenges = set()
+            
+            # Get completed challenges
+            response = supabase.table('completed_challenges').select('challenge_id').eq('game_id', self.id).execute()
+            if response.data:
+                used_challenges.update([cc['challenge_id'] for cc in response.data])
+            
+            # Get vetoed challenges
+            response = supabase.table('vetoes').select('challenge_id').eq('game_id', self.id).execute()
+            if response.data:
+                used_challenges.update([v['challenge_id'] for v in response.data])
+            
+            # Get failed challenges
+            response = supabase.table('failed_challenges').select('challenge_id').eq('game_id', self.id).execute()
+            if response.data:
+                used_challenges.update([fc['challenge_id'] for fc in response.data])
+            
+            return used_challenges
+        except Exception as e:
+            print(f"Error getting used challenges in game: {e}")
+            return set()
+
+    def get_available_challenges_for_user(self, user_id):
+        """Get challenges available for a specific user in this game"""
+        try:
+            # Get all challenges
+            response = supabase.table('challenges').select('*').execute()
+            all_challenges = response.data
+            
+            # Get challenges used by this specific user
+            user_completed = set([cc['challenge_id'] for cc in self.get_completed_challenges(user_id)])
+            user_vetoed = set([v['challenge_id'] for v in self.get_vetoes(user_id)])
+            user_failed = set([fc['challenge_id'] for fc in self.get_failed_challenges(user_id)])
+            
+            # Get challenges used by ANY player in this game
+            game_used = self.get_used_challenges_in_game()
+            
+            # Filter out challenges that are unavailable
+            available_challenges = [
+                c for c in all_challenges 
+                if c['id'] not in user_completed and 
+                   c['id'] not in user_vetoed and 
+                   c['id'] not in user_failed and
+                   c['id'] not in game_used  # This ensures no duplicates within the game session
+            ]
+            
+            return available_challenges
+        except Exception as e:
+            print(f"Error getting available challenges for user: {e}")
+            return []
+
+    def fail_challenge(self, user_id, challenge_id):
+        """Mark a challenge as failed"""
+        try:
+            response = supabase.table('failed_challenges').insert({
+                'game_id': self.id,
+                'user_id': user_id,
+                'challenge_id': challenge_id
+            }).execute()
+            return response.data
+        except Exception as e:
+            print(f"Error failing challenge: {e}")
+            return None
+
     def veto_challenge(self, user_id, challenge_id):
         """Veto a challenge"""
         try:
@@ -268,20 +343,84 @@ class Game:
             return None
 
     def end_game(self, winner_id=None):
-        """End the game"""
+        """End the game and set winner"""
         try:
-            update_data = {'is_active': False}
-            if winner_id:
-                update_data['winner_id'] = winner_id
-            
-            response = supabase.table('games').update(update_data).eq('id', self.id).execute()
-            if response.data:
-                self.is_active = False
-                self.winner_id = winner_id
+            response = supabase.table('games').update({
+                'is_active': False,
+                'winner_id': winner_id
+            }).eq('id', self.id).execute()
             return response.data
         except Exception as e:
             print(f"Error ending game: {e}")
             return None
+
+    @staticmethod
+    def clear_all_users():
+        """Clear all users from the database (for fresh game sessions)"""
+        try:
+            # Delete all users except admin users (those starting with 'admin_')
+            response = supabase.table('users').delete().neq('username', 'admin').execute()
+            print(f"Cleared {len(response.data) if response.data else 0} users from database")
+            return True
+        except Exception as e:
+            print(f"Error clearing users: {e}")
+            return False
+
+    @staticmethod
+    def cleanup_old_users(hours_old=24):
+        """Clean up users who haven't been active for the specified number of hours"""
+        try:
+            # Calculate the cutoff time
+            from datetime import datetime, timedelta
+            cutoff_time = datetime.now() - timedelta(hours=hours_old)
+            
+            # Get users created before the cutoff time (excluding admin users)
+            response = supabase.table('users').select('id, username, created_at').lt('created_at', cutoff_time.isoformat()).neq('username', 'admin').execute()
+            
+            if response.data:
+                user_ids = [user['id'] for user in response.data]
+                
+                # Delete related data first
+                for user_id in user_ids:
+                    # Delete completed challenges
+                    supabase.table('completed_challenges').delete().eq('user_id', user_id).execute()
+                    # Delete vetoes
+                    supabase.table('vetoes').delete().eq('user_id', user_id).execute()
+                    # Delete failed challenges
+                    supabase.table('failed_challenges').delete().eq('user_id', user_id).execute()
+                    # Delete player entries
+                    supabase.table('players').delete().eq('user_id', user_id).execute()
+                
+                # Delete the users
+                supabase.table('users').delete().in_('id', user_ids).execute()
+                
+                print(f"Cleaned up {len(user_ids)} old users (older than {hours_old} hours)")
+                return len(user_ids)
+            else:
+                print("No old users to clean up")
+                return 0
+                
+        except Exception as e:
+            print(f"Error cleaning up old users: {e}")
+            return 0
+
+    @staticmethod
+    def clear_game_data(game_id):
+        """Clear all data related to a specific game"""
+        try:
+            # Delete completed challenges for this game
+            supabase.table('completed_challenges').delete().eq('game_id', game_id).execute()
+            # Delete vetoes for this game
+            supabase.table('vetoes').delete().eq('game_id', game_id).execute()
+            # Delete failed challenges for this game
+            supabase.table('failed_challenges').delete().eq('game_id', game_id).execute()
+            # Delete players for this game
+            supabase.table('players').delete().eq('game_id', game_id).execute()
+            print(f"Cleared all data for game {game_id}")
+            return True
+        except Exception as e:
+            print(f"Error clearing game data: {e}")
+            return False
 
 # Challenge class
 class Challenge:
@@ -344,6 +483,11 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        
+        # Prevent users from registering with admin-like usernames
+        if username.startswith('admin_'):
+            flash('Username cannot start with "admin_"!')
+            return render_template('register.html')
         
         # Check if user already exists
         existing_user = User.get_by_username(username)
@@ -449,6 +593,56 @@ def join_game():
     
     return render_template('join_game.html')
 
+@app.route('/join_game_anonymous', methods=['GET', 'POST'])
+def join_game_anonymous():
+    """Allow users to join games without requiring login by creating a temporary account"""
+    if request.method == 'POST':
+        code = request.form['code']
+        username = request.form['username']
+        
+        # Validate username
+        if not username or len(username.strip()) < 2:
+            flash('Username must be at least 2 characters long!')
+            return render_template('join_game_anonymous.html', game_code=code)
+        
+        username = username.strip()
+        
+        # Check if username starts with admin_ (reserved for admin users)
+        if username.startswith('admin_'):
+            flash('Username cannot start with "admin_"!')
+            return render_template('join_game_anonymous.html', game_code=code)
+        
+        game = Game.get_by_code(code)
+        if not game:
+            flash('Invalid game code!')
+            return render_template('join_game_anonymous.html')
+        
+        # Check if username already exists
+        existing_user = User.get_by_username(username)
+        if existing_user:
+            flash('Username already exists! Please choose a different one.')
+            return render_template('join_game_anonymous.html', game_code=code)
+        
+        # Create new user with a simple password (they won't need to log in again)
+        password_hash = generate_password_hash('temp123')
+        user = User.create(username, password_hash)
+        
+        if not user:
+            flash('Failed to create user account!')
+            return render_template('join_game_anonymous.html', game_code=code)
+        
+        # Log the user in
+        login_user(user)
+        
+        # Add user to the game
+        game.add_player(user.id)
+        flash('Successfully joined the game!')
+        return redirect(url_for('game_room', game_id=game.id))
+    
+    # Handle GET request with game code parameter
+    game_code = request.args.get('code', '').strip()
+    return render_template('join_game_anonymous.html', game_code=game_code)
+
 @app.route('/game/<int:game_id>')
 @login_required
 def game_room(game_id):
@@ -463,8 +657,10 @@ def game_room(game_id):
         flash('You are not in this game!')
         return redirect(url_for('dashboard'))
     
-    # Check if user is admin (by checking admin password)
-    is_admin = request.args.get('admin_password') == game.admin_password
+    # Check if user is admin (by checking admin password, admin session, or admin username pattern)
+    is_admin = (request.args.get('admin_password') == game.admin_password or 
+                session.get('admin_logged_in') or
+                current_user.username.startswith('admin_'))
     
     return render_template('game_room.html', game=game, players=players, is_admin=is_admin)
 
@@ -480,46 +676,42 @@ def get_challenge(game_id):
     if not any(player['user_id'] == current_user.id for player in players):
         return jsonify({'error': 'Not in game'}), 403
     
-    # Get user's completed challenges
-    completed_challenges = game.get_completed_challenges(current_user.id)
-    completed_challenge_ids = [cc['challenge_id'] for cc in completed_challenges]
-    
-    # Get user's vetoes
-    vetoes = game.get_vetoes(current_user.id)
-    vetoed_challenge_ids = [v['challenge_id'] for v in vetoes]
-    
-    # Get all challenges
-    try:
-        response = supabase.table('challenges').select('*').execute()
-        all_challenges = response.data
-    except Exception as e:
-        print(f"Error getting challenges: {e}")
-        all_challenges = []
-    
-    # Filter out completed and vetoed challenges
-    available_challenges = [
-        c for c in all_challenges 
-        if c['id'] not in completed_challenge_ids and c['id'] not in vetoed_challenge_ids
-    ]
+    # Get available challenges for this user (no duplicates within game session)
+    available_challenges = game.get_available_challenges_for_user(current_user.id)
     
     if not available_challenges:
         return jsonify({'error': 'No more challenges available'}), 404
     
-    # Select random challenge
-    challenge = random.choice(available_challenges)
+    # Use improved randomization: shuffle and pick first, or weighted selection
+    # This provides better distribution than simple random.choice
+    random.shuffle(available_challenges)
+    challenge = available_challenges[0]
+    
+    # Get user's progress for display
+    completed_challenges = game.get_completed_challenges(current_user.id)
+    vetoes = game.get_vetoes(current_user.id)
+    failed_challenges = game.get_failed_challenges(current_user.id)
     
     # Get progress info
-    total_challenges = len(all_challenges)
+    try:
+        response = supabase.table('challenges').select('*').execute()
+        total_challenges = len(response.data)
+    except Exception as e:
+        print(f"Error getting total challenges: {e}")
+        total_challenges = 0
+    
     completed_count = len(completed_challenges)
     vetoed_count = len(vetoes)
+    failed_count = len(failed_challenges)
     
     return jsonify({
         'challenge': challenge,
         'progress': {
             'completed': completed_count,
             'vetoed': vetoed_count,
+            'failed': failed_count,
             'total': total_challenges,
-            'remaining': total_challenges - completed_count - vetoed_count
+            'remaining': total_challenges - completed_count - vetoed_count - failed_count
         },
         'game_mode': game.game_mode,
         'target_challenges': game.target_challenges
@@ -566,6 +758,66 @@ def veto_challenge(challenge_id):
     
     return jsonify({'message': 'Challenge vetoed!'})
 
+@app.route('/api/fail_challenge/<int:challenge_id>', methods=['POST'])
+@login_required
+def fail_challenge(challenge_id):
+    game_id = request.json.get('game_id')
+    game = Game.get(game_id)
+    if not game:
+        return jsonify({'error': 'Game not found'}), 404
+    
+    # Fail the challenge
+    result = game.fail_challenge(current_user.id, challenge_id)
+    if not result:
+        return jsonify({'error': 'Failed to mark challenge as failed'}), 500
+    
+    return jsonify({'message': 'Challenge marked as failed!'})
+
+@app.route('/api/get_players/<int:game_id>')
+@login_required
+def get_players(game_id):
+    game = Game.get(game_id)
+    if not game:
+        return jsonify({'error': 'Game not found'}), 404
+    
+    # Check if user is in the game
+    players = game.get_players()
+    if not any(player['user_id'] == current_user.id for player in players):
+        return jsonify({'error': 'Not in game'}), 403
+    
+    # Format players data for frontend
+    formatted_players = []
+    for player in players:
+        formatted_players.append({
+            'id': player['user_id'],
+            'username': player['users']['username'] if player['users'] else f'Player {player["user_id"]}',
+            'is_admin': (player['users']['username'].startswith('admin_') or player['users']['username'].startswith('Admin')) if player['users'] and player['users']['username'] else False,
+            'joined_at': player['joined_at']
+        })
+    
+    return jsonify({'players': formatted_players})
+
+@app.route('/admin_api/get_players/<int:game_id>')
+def admin_get_players(game_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    game = Game.get(game_id)
+    if not game:
+        return jsonify({'error': 'Game not found'}), 404
+    
+    # Format players data for frontend
+    formatted_players = []
+    for player in game.get_players():
+        formatted_players.append({
+            'id': player['user_id'],
+            'username': player['users']['username'] if player['users'] else f'Player {player["user_id"]}',
+            'is_admin': (player['users']['username'].startswith('admin_') or player['users']['username'].startswith('Admin')) if player['users'] and player['users']['username'] else False,
+            'joined_at': player['joined_at']
+        })
+    
+    return jsonify({'players': formatted_players})
+
 @app.route('/api/end_game/<int:game_id>', methods=['POST'])
 @login_required
 def end_game(game_id):
@@ -578,12 +830,57 @@ def end_game(game_id):
     if not is_admin:
         return jsonify({'error': 'Admin access required'}), 403
     
+    # Get all players in the game
+    players = game.get_players()
+    
+    # Calculate scores for each player
+    player_stats = []
+    winner = None
+    best_score = -1
+    
+    for player_data in players:
+        user_id = player_data['user_id']
+        username = player_data['users']['username']
+        
+        # Get completed challenges
+        completed_challenges = game.get_completed_challenges(user_id)
+        completed_count = len(completed_challenges)
+        
+        # Get failed challenges
+        failed_challenges = game.get_failed_challenges(user_id)
+        failed_count = len(failed_challenges)
+        
+        # Get vetoed challenges
+        vetoes = game.get_vetoes(user_id)
+        vetoed_count = len(vetoes)
+        
+        # Calculate score: completed - failed (negative points for failures)
+        score = completed_count - failed_count
+        
+        player_stats.append({
+            'username': username,
+            'completed': completed_count,
+            'failed': failed_count,
+            'vetoed': vetoed_count,
+            'score': score
+        })
+        
+        # Track winner (highest score)
+        if score > best_score:
+            best_score = score
+            winner = username
+    
     # End the game
     result = game.end_game()
     if not result:
         return jsonify({'error': 'Failed to end game'}), 500
     
-    return jsonify({'message': 'Game ended!'})
+    return jsonify({
+        'message': f'Game ended! Winner: {winner} with score {best_score}',
+        'winner': winner,
+        'best_score': best_score,
+        'player_stats': player_stats
+    })
 
 @app.route('/admin_login', methods=['POST'])
 def admin_login():
@@ -620,11 +917,16 @@ def admin_create_game():
     
     if request.method == 'POST':
         name = request.form['game_name']
+        admin_username = request.form.get('admin_username', 'Admin')
         max_vetos = request.form.get('max_vetos', 3)
         admin_password = request.form['admin_password'] if 'admin_password' in request.form else ADMIN_PASSWORD
         game_mode = request.form.get('game_mode', 'open_ended')
         time_limit = request.form.get('time_limit')
         target_challenges = request.form.get('target_challenges')
+        clear_users = 'clear_users' in request.form  # Check if user wants to clear all users
+        
+        # Store admin username in session for later use
+        session['admin_username'] = admin_username
         
         # Convert to integers if provided
         if time_limit:
@@ -634,11 +936,21 @@ def admin_create_game():
         if max_vetos and max_vetos != '':
             max_vetos = int(max_vetos)
         
+        # Clear all users if requested (for fresh game sessions)
+        if clear_users:
+            Game.clear_all_users()
+            flash('All users cleared for fresh game session!')
+        else:
+            # Automatically clean up old users (older than 24 hours)
+            cleaned_count = Game.cleanup_old_users(hours_old=24)
+            if cleaned_count > 0:
+                flash(f'Automatically cleaned up {cleaned_count} old users (older than 24 hours)')
+        
         game = Game.create(name, admin_password, game_mode, time_limit, target_challenges, max_vetos)
         if game:
             # Generate QR code
             qr = qrcode.QRCode(version=1, box_size=10, border=5)
-            join_url = request.host_url.rstrip('/') + url_for('join_game') + '?code=' + game.code
+            join_url = request.host_url.rstrip('/') + url_for('join_game_anonymous') + '?code=' + game.code
             qr.add_data(join_url)
             qr.make(fit=True)
             
@@ -654,6 +966,20 @@ def admin_create_game():
     
     return render_template('admin_create_game.html')
 
+@app.route('/admin_clear_users', methods=['POST'])
+def admin_clear_users():
+    """Admin route to clear all users from the database"""
+    if not session.get('admin_logged_in'):
+        flash('Admin access required!')
+        return redirect(url_for('index'))
+    
+    if Game.clear_all_users():
+        flash('All users cleared successfully! Usernames can now be reused.')
+    else:
+        flash('Failed to clear users!')
+    
+    return redirect(url_for('admin_menu'))
+
 @app.route('/admin_join_game/<int:game_id>')
 def admin_join_game(game_id):
     if not session.get('admin_logged_in'):
@@ -665,8 +991,135 @@ def admin_join_game(game_id):
         flash('Game not found!')
         return redirect(url_for('admin_menu'))
     
-    # Redirect to game room with admin access
-    return redirect(url_for('game_room', game_id=game_id, admin_password=game.admin_password))
+    # Get admin username from session or use default
+    admin_username = session.get('admin_username', f'Admin_{game_id}')
+    
+    # Create admin user with the custom username
+    admin_user = User.get_by_username(admin_username)
+    if not admin_user:
+        password_hash = generate_password_hash('admin')
+        admin_user = User.create(admin_username, password_hash)
+        if not admin_user:
+            flash('Failed to create admin user!')
+            return redirect(url_for('admin_menu'))
+    
+    # Add admin to the game if not already there
+    players = game.get_players()
+    if not any(player['user_id'] == admin_user.id for player in players):
+        game.add_player(admin_user.id)
+        flash('Admin joined the game as a player!')
+    
+    # Log in as admin user
+    login_user(admin_user)
+    
+    # Redirect to regular game room (now admin can play with others)
+    return redirect(url_for('game_room', game_id=game_id))
+
+@app.route('/admin_game_room/<int:game_id>')
+def admin_game_room(game_id):
+    if not session.get('admin_logged_in'):
+        flash('Admin access required!')
+        return redirect(url_for('index'))
+    
+    game = Game.get(game_id)
+    if not game:
+        flash('Game not found!')
+        return redirect(url_for('admin_menu'))
+    
+    # Get players in the game
+    players = game.get_players()
+    
+    # Admin has full access in admin game room
+    is_admin = True
+    
+    return render_template('game_room.html', game=game, players=players, is_admin=is_admin)
+
+@app.route('/admin_api/get_challenge/<int:game_id>')
+def admin_get_challenge(game_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    game = Game.get(game_id)
+    if not game:
+        return jsonify({'error': 'Game not found'}), 404
+    
+    # Get all challenges
+    try:
+        response = supabase.table('challenges').select('*').execute()
+        all_challenges = response.data
+    except Exception as e:
+        print(f"Error getting challenges: {e}")
+        all_challenges = []
+    
+    if not all_challenges:
+        return jsonify({'error': 'No challenges available'}), 404
+    
+    # For admin, we can show any challenge, but let's still use improved randomization
+    # and avoid challenges that have been used in this game session
+    game_used = game.get_used_challenges_in_game()
+    available_challenges = [c for c in all_challenges if c['id'] not in game_used]
+    
+    # If all challenges have been used, fall back to all challenges
+    if not available_challenges:
+        available_challenges = all_challenges
+    
+    # Use improved randomization
+    random.shuffle(available_challenges)
+    challenge = available_challenges[0]
+    
+    return jsonify({
+        'challenge': challenge,
+        'progress': {
+            'completed': 0,
+            'vetoed': 0,
+            'total': len(all_challenges),
+            'remaining': len(all_challenges)
+        },
+        'game_mode': game.game_mode,
+        'target_challenges': game.target_challenges
+    })
+
+@app.route('/admin_api/complete_challenge/<int:challenge_id>', methods=['POST'])
+def admin_complete_challenge(challenge_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    game_id = request.json.get('game_id')
+    game = Game.get(game_id)
+    if not game:
+        return jsonify({'error': 'Game not found'}), 404
+    
+    # For admin, just return success (no actual completion tracking)
+    return jsonify({'message': 'Challenge completed! (Admin mode)'})
+
+@app.route('/admin_api/veto_challenge/<int:challenge_id>', methods=['POST'])
+def admin_veto_challenge(challenge_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    game_id = request.json.get('game_id')
+    game = Game.get(game_id)
+    if not game:
+        return jsonify({'error': 'Game not found'}), 404
+    
+    # For admin, just return success (no actual veto tracking)
+    return jsonify({'message': 'Challenge vetoed! (Admin mode)'})
+
+@app.route('/admin_api/end_game/<int:game_id>', methods=['POST'])
+def admin_end_game(game_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    game = Game.get(game_id)
+    if not game:
+        return jsonify({'error': 'Game not found'}), 404
+    
+    # End the game
+    result = game.end_game()
+    if not result:
+        return jsonify({'error': 'Failed to end game'}), 500
+    
+    return jsonify({'message': 'Game ended!'})
 
 @app.route('/admin_logout')
 def admin_logout():
@@ -715,4 +1168,4 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"Error initializing challenges: {e}")
     
-    app.run(debug=True) 
+    app.run(debug=True, port=4000) 

@@ -40,7 +40,7 @@
                         <span class="badge bg-secondary">Finished</span>
                     {% endif %}
                 </p>
-                <p><strong>Players:</strong> {{ players|length }}</p>
+                <p><strong>Players:</strong> <span id="playerCount">{{ players|length }}</span></p>
                 
                 {% if is_admin %}
                     <div class="mt-3">
@@ -54,21 +54,38 @@
 
         <!-- Players List -->
         <div class="card shadow mt-4">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="fas fa-users me-2"></i>Players
                 </h5>
+                <small id="playersUpdateIndicator" class="text-muted" style="display: none;">
+                    <i class="fas fa-sync-alt fa-spin"></i> Updating...
+                </small>
             </div>
             <div class="card-body">
-                <div class="list-group list-group-flush">
-                    {% for player in players %}
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>{{ player.username }}</span>
-                        {% if player.id == game.admin_id %}
-                            <span class="badge bg-warning">Admin</span>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
+                <div id="playersList" class="list-group list-group-flush">
+                    {% if players %}
+                        {% for player in players %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                {% if player.users and player.users.username %}
+                                    {{ player.users.username }}
+                                {% else %}
+                                    Player {{ player.user_id }}
+                                {% endif %}
+                            </span>
+                            {% if player.users and player.users.username %}
+                                {% if player.users.username.startswith('admin_') or player.users.username.startswith('Admin') %}
+                                    <span class="badge bg-warning">Admin</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="list-group-item text-muted">
+                            <em>No players have joined yet</em>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -126,14 +143,26 @@ let failedCount = 0;
 let maxVetos = 3; // Global variable for max vetos
 const gameId = {{ game.id }};
 const isAdmin = {% if is_admin %}true{% else %}false{% endif %};
+let playersUpdateInterval = null;
+let currentPlayers = []; // Track current players to detect changes
+
+// Detect if we're in admin mode by checking the URL
+const isAdminMode = window.location.pathname.includes('admin_game_room');
+const apiPrefix = isAdminMode ? '/admin_api' : '/api';
 
 // Load challenge when page loads
 document.addEventListener('DOMContentLoaded', function() {
     loadChallenge();
+    loadPlayers();
+    
+    // Set up periodic updates (only if game is active)
+    {% if game.is_active %}
+    playersUpdateInterval = setInterval(loadPlayers, 3000); // Update players list every 3 seconds
+    {% endif %}
 });
 
 function loadChallenge() {
-    fetch(`/api/get_challenge/${gameId}`)
+    fetch(`${apiPrefix}/get_challenge/${gameId}`)
         .then(response => response.json())
         .then(data => {
             if (data.error) {
@@ -148,16 +177,16 @@ function loadChallenge() {
 }
 
 function displayChallenge(data) {
-    currentChallengeId = data.challenge_id;
-    vetoesUsed = data.vetoes_used;
-    failedCount = data.failed_count || 0;
-    maxVetos = data.max_vetos || 3; // Update global maxVetos
+    currentChallengeId = data.challenge.id; // Fix: use data.challenge.id instead of data.challenge_id
+    vetoesUsed = data.progress ? data.progress.vetoed : 0;
+    failedCount = data.progress ? data.progress.failed : 0;
+    maxVetos = {{ game.max_vetos if game.max_vetos else 3 }}; // Use game's max vetos
     
     const challengeArea = document.getElementById('challengeArea');
     challengeArea.innerHTML = `
         <div class="text-center">
             <div class="challenge-card p-4 mb-4">
-                <h3 class="mb-3">${data.description}</h3>
+                <h3 class="mb-3">${data.challenge.description}</h3>
                 <div class="stats-info mb-3">
                     <small class="text-muted">Missions skipped: ${vetoesUsed}/${maxVetos} | Missions failed: ${failedCount}</small>
                 </div>
@@ -180,16 +209,17 @@ function displayChallenge(data) {
 function completeChallenge() {
     if (!currentChallengeId) return;
     
-    fetch(`/api/complete_challenge/${currentChallengeId}`, {
+    fetch(`${apiPrefix}/complete_challenge/${currentChallengeId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({ game_id: gameId })
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            showSuccess('Mission completed! Loading next mission...');
+        if (data.message) {
+            showSuccess(data.message);
             setTimeout(loadChallenge, 1500);
         } else {
             showError(data.error || 'Failed to complete mission');
@@ -207,16 +237,24 @@ function failChallenge() {
         return;
     }
     
-    fetch(`/api/fail_challenge/${currentChallengeId}`, {
+    // For admin mode, just show success (no actual failure tracking)
+    if (isAdminMode) {
+        showSuccess('Mission marked as failed! (Admin mode)');
+        setTimeout(loadChallenge, 1500);
+        return;
+    }
+    
+    fetch(`${apiPrefix}/fail_challenge/${currentChallengeId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({ game_id: gameId })
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            showSuccess('Mission marked as failed! Loading new mission...');
+        if (data.message) {
+            showSuccess(data.message);
             setTimeout(loadChallenge, 1500);
         } else {
             showError(data.error || 'Failed to mark mission as failed');
@@ -234,16 +272,17 @@ function vetoChallenge() {
         return;
     }
     
-    fetch(`/api/veto_challenge/${currentChallengeId}`, {
+    fetch(`${apiPrefix}/veto_challenge/${currentChallengeId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({ game_id: gameId })
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            showSuccess('Mission skipped! Loading new mission...');
+        if (data.message) {
+            showSuccess(data.message);
             setTimeout(loadChallenge, 1500);
         } else {
             showError(data.error || 'Failed to skip mission');
@@ -274,29 +313,131 @@ function showError(message) {
     document.querySelector('main').insertBefore(alert, document.querySelector('main').firstChild);
 }
 
+function loadPlayers() {
+    fetch(`${apiPrefix}/get_players/${gameId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error loading players:', data.error);
+            } else {
+                // Check if players list has changed
+                const hasChanged = hasPlayersChanged(data.players);
+                if (hasChanged) {
+                    // Show update indicator only when there's a change
+                    const indicator = document.getElementById('playersUpdateIndicator');
+                    if (indicator) indicator.style.display = 'inline';
+                    
+                    updatePlayersList(data.players);
+                    
+                    // Hide indicator after a short delay
+                    setTimeout(() => {
+                        if (indicator) indicator.style.display = 'none';
+                    }, 1000);
+                } else {
+                    // Update silently if no changes
+                    updatePlayersList(data.players);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Failed to load players:', error);
+        });
+}
+
+function hasPlayersChanged(newPlayers) {
+    // Compare current players with new players
+    if (currentPlayers.length !== newPlayers.length) {
+        return true;
+    }
+    
+    // Check if any usernames have changed
+    for (let i = 0; i < newPlayers.length; i++) {
+        if (!currentPlayers[i] || currentPlayers[i].username !== newPlayers[i].username) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+function updatePlayersList(players) {
+    const playersContainer = document.getElementById('playersList');
+    if (!playersContainer) return;
+    
+    // Update the current players tracking
+    currentPlayers = players;
+    
+    // Update the player count in the Game Info panel
+    const playerCountElement = document.getElementById('playerCount');
+    if (playerCountElement) {
+        playerCountElement.textContent = players.length;
+    }
+    
+    if (players.length === 0) {
+        playersContainer.innerHTML = `
+            <div class="list-group-item text-muted">
+                <em>No players have joined yet</em>
+            </div>
+        `;
+        return;
+    }
+    
+    playersContainer.innerHTML = players.map(player => `
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <span>${player.username}</span>
+            ${player.is_admin || player.username.startsWith('admin_') || player.username.startsWith('Admin') ? '<span class="badge bg-warning">Admin</span>' : ''}
+        </div>
+    `).join('');
+}
+
 if (isAdmin) {
     document.getElementById('endGameBtn').addEventListener('click', function() {
         if (!confirm('Are you sure you want to end the game? This will calculate the winner and cannot be undone.')) {
             return;
         }
         
-        fetch(`/api/end_game/${gameId}`, {
+        // Stop the players update interval
+        if (playersUpdateInterval) {
+            clearInterval(playersUpdateInterval);
+            playersUpdateInterval = null;
+        }
+        
+        fetch(`${apiPrefix}/end_game/${gameId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            }
+            },
+            body: JSON.stringify({ admin_password: '{{ game.admin_password }}' })
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                let message = `Game ended! Winner: ${data.winner || 'No winner'}`;
+            if (data.message) {
+                showSuccess(data.message);
+                // Display detailed results
                 if (data.player_stats) {
-                    message += '<br><br><strong>Final Stats:</strong><br>';
+                    let resultsHtml = '<div class="mt-3"><h5>Final Results:</h5><ul class="list-group">';
                     data.player_stats.forEach(player => {
-                        message += `${player.username}: ${player.completed} completed, ${player.failed} failed, ${player.vetoed} skipped<br>`;
+                        const isWinner = player.username === data.winner;
+                        const badgeClass = isWinner ? 'bg-warning' : 'bg-secondary';
+                        resultsHtml += `
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>${player.username}</span>
+                                <div>
+                                    <span class="badge ${badgeClass} me-2">Score: ${player.score}</span>
+                                    <small class="text-muted">
+                                        ✓${player.completed} ✗${player.failed} ⚠${player.vetoed}
+                                    </small>
+                                </div>
+                            </li>
+                        `;
                     });
+                    resultsHtml += '</ul></div>';
+                    
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-info alert-dismissible fade show';
+                    alert.innerHTML = resultsHtml + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                    document.querySelector('main').insertBefore(alert, document.querySelector('main').firstChild);
                 }
-                showSuccess(message);
                 setTimeout(() => location.reload(), 5000);
             } else {
                 showError(data.error || 'Failed to end game');
