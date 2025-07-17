@@ -657,6 +657,10 @@ def game_room(game_id):
         flash('You are not in this game!')
         return redirect(url_for('dashboard'))
     
+    # Check if game has ended - redirect to end game screen
+    if not game.is_active:
+        return redirect(url_for('end_game_screen', game_id=game_id))
+    
     # Check if user is admin (by checking admin password, admin session, or admin username pattern)
     is_admin = (request.args.get('admin_password') == game.admin_password or 
                 session.get('admin_logged_in') or
@@ -797,6 +801,19 @@ def get_players(game_id):
     
     return jsonify({'players': formatted_players})
 
+@app.route('/api/game_status/<int:game_id>')
+@login_required
+def game_status(game_id):
+    """Check if a game is still active"""
+    game = Game.get(game_id)
+    if not game:
+        return jsonify({'error': 'Game not found'}), 404
+    
+    return jsonify({
+        'is_active': game.is_active,
+        'game_id': game_id
+    })
+
 @app.route('/admin_api/get_players/<int:game_id>')
 def admin_get_players(game_id):
     if not session.get('admin_logged_in'):
@@ -835,7 +852,6 @@ def end_game(game_id):
     
     # Calculate scores for each player
     player_stats = []
-    winner = None
     best_score = -1
     
     for player_data in players:
@@ -865,11 +881,37 @@ def end_game(game_id):
             'score': score
         })
         
-        # Track winner (highest score)
+        # Track best score
         if score > best_score:
             best_score = score
-            winner = username
     
+    # Determine winner(s) with tie-breaking
+    winners = []
+    for player in player_stats:
+        if player['score'] == best_score:
+            winners.append(player)
+    
+    # If there's a tie, apply tie-breaking rules
+    if len(winners) > 1:
+        # Sort by tie-breaking criteria: completed desc, failed asc, vetoed asc
+        winners.sort(key=lambda x: (-x['completed'], x['failed'], x['vetoed']))
+        
+        # Check if still tied after tie-breaking
+        if (winners[0]['completed'] == winners[1]['completed'] and 
+            winners[0]['failed'] == winners[1]['failed'] and 
+            winners[0]['vetoed'] == winners[1]['vetoed']):
+            # True tie - multiple winners
+            winner = "TIE"
+            winner_names = [w['username'] for w in winners]
+        else:
+            # Tie broken
+            winner = winners[0]['username']
+            winner_names = [winner]
+    else:
+        # Single winner
+        winner = winners[0]['username']
+        winner_names = [winner]
+
     # End the game
     result = game.end_game()
     if not result:
@@ -879,7 +921,8 @@ def end_game(game_id):
         'message': f'Game ended! Winner: {winner} with score {best_score}',
         'winner': winner,
         'best_score': best_score,
-        'player_stats': player_stats
+        'player_stats': player_stats,
+        'redirect': url_for('end_game_screen', game_id=game_id)
     })
 
 @app.route('/admin_login', methods=['POST'])
@@ -1105,6 +1148,120 @@ def admin_veto_challenge(challenge_id):
     # For admin, just return success (no actual veto tracking)
     return jsonify({'message': 'Challenge vetoed! (Admin mode)'})
 
+@app.route('/end_game_screen/<int:game_id>')
+def end_game_screen(game_id):
+    """Display the end game screen with final scores and winner"""
+    game = Game.get(game_id)
+    if not game:
+        flash('Game not found!')
+        return redirect(url_for('index'))
+    
+    # Check if game is actually ended
+    if game.is_active:
+        flash('Game is still active!')
+        return redirect(url_for('game_room', game_id=game_id))
+    
+    # Get all players in the game
+    players = game.get_players()
+    
+    # Calculate scores for each player
+    player_stats = []
+    best_score = -1
+    
+    for player_data in players:
+        user_id = player_data['user_id']
+        username = player_data['users']['username']
+        
+        # Get completed challenges
+        completed_challenges = game.get_completed_challenges(user_id)
+        completed_count = len(completed_challenges)
+        
+        # Get failed challenges
+        failed_challenges = game.get_failed_challenges(user_id)
+        failed_count = len(failed_challenges)
+        
+        # Get vetoed challenges
+        vetoes = game.get_vetoes(user_id)
+        vetoed_count = len(vetoes)
+        
+        # Calculate score: completed - failed (negative points for failures)
+        score = completed_count - failed_count
+        
+        player_stats.append({
+            'username': username,
+            'completed': completed_count,
+            'failed': failed_count,
+            'vetoed': vetoed_count,
+            'score': score
+        })
+        
+        # Track winner (highest score)
+        if score > best_score:
+            best_score = score
+    
+    # Determine winner(s) with tie-breaking
+    winners = []
+    for player in player_stats:
+        if player['score'] == best_score:
+            winners.append(player)
+    
+    # If there's a tie, apply tie-breaking rules
+    if len(winners) > 1:
+        # Sort by tie-breaking criteria: completed desc, failed asc, vetoed asc
+        winners.sort(key=lambda x: (-x['completed'], x['failed'], x['vetoed']))
+        
+        # Check if still tied after tie-breaking
+        if (winners[0]['completed'] == winners[1]['completed'] and 
+            winners[0]['failed'] == winners[1]['failed'] and 
+            winners[0]['vetoed'] == winners[1]['vetoed']):
+            # True tie - multiple winners
+            winner = "TIE"
+            winner_names = [w['username'] for w in winners]
+        else:
+            # Tie broken
+            winner = winners[0]['username']
+            winner_names = [winner]
+    else:
+        # Single winner
+        winner = winners[0]['username']
+        winner_names = [winner]
+    
+    # Calculate ranks with proper tie handling
+    ranked_players = []
+    current_rank = 1
+    current_score = -1
+    current_completed = -1
+    current_failed = -1
+    current_vetoed = -1
+    
+    for i, player in enumerate(sorted(player_stats, key=lambda x: (-x['score'], -x['completed'], x['failed'], x['vetoed']))):
+        # Check if this is a tie with the previous player
+        is_tie = (player['score'] == current_score and 
+                  player['completed'] == current_completed and 
+                  player['failed'] == current_failed and 
+                  player['vetoed'] == current_vetoed)
+        
+        if not is_tie:
+            current_rank = i + 1
+        
+        # Add rank to player data
+        player_with_rank = player.copy()
+        player_with_rank['rank'] = current_rank
+        ranked_players.append(player_with_rank)
+        
+        # Update current values for next iteration
+        current_score = player['score']
+        current_completed = player['completed']
+        current_failed = player['failed']
+        current_vetoed = player['vetoed']
+
+    return render_template('end_game.html', 
+                         game=game, 
+                         player_stats=ranked_players, 
+                         winner=winner, 
+                         winner_names=winner_names, 
+                         best_score=best_score)
+
 @app.route('/admin_api/end_game/<int:game_id>', methods=['POST'])
 def admin_end_game(game_id):
     if not session.get('admin_logged_in'):
@@ -1119,7 +1276,7 @@ def admin_end_game(game_id):
     if not result:
         return jsonify({'error': 'Failed to end game'}), 500
     
-    return jsonify({'message': 'Game ended!'})
+    return jsonify({'message': 'Game ended!', 'redirect': url_for('end_game_screen', game_id=game_id)})
 
 @app.route('/admin_logout')
 def admin_logout():

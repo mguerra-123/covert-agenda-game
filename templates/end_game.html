@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Game Over - {{ game.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Game Over Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-3 text-danger mb-3">
+                    <i class="fas fa-flag-checkered me-3"></i>GAME OVER
+                </h1>
+                <h2 class="text-muted">{{ game.name }}</h2>
+                <p class="lead">The game has ended! Here are the final results:</p>
+            </div>
+
+            <!-- Winner Announcement -->
+            {% if winner == 'TIE' %}
+            <div class="row justify-content-center mb-5">
+                <div class="col-md-8">
+                    <div class="card border-warning shadow-lg">
+                        <div class="card-header bg-warning text-dark text-center">
+                            <h3 class="mb-0">
+                                <i class="fas fa-balance-scale me-2"></i>IT'S A TIE!
+                            </h3>
+                        </div>
+                        <div class="card-body text-center">
+                            <h2 class="display-5 text-warning mb-3">{{ winner_names|join(', ') }}</h2>
+                            <p class="lead">Multiple players share the top score! Congratulations to all!</p>
+                            <div class="badge bg-success fs-5">Final Score: {{ best_score }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% elif winner %}
+            <div class="row justify-content-center mb-5">
+                <div class="col-md-8">
+                    <div class="card border-warning shadow-lg">
+                        <div class="card-header bg-warning text-dark text-center">
+                            <h3 class="mb-0">
+                                <i class="fas fa-trophy me-2"></i>🏆 WINNER 🏆
+                            </h3>
+                        </div>
+                        <div class="card-body text-center">
+                            <h2 class="display-4 text-warning mb-3">{{ winner }}</h2>
+                            <p class="lead">Congratulations! You completed the most challenges!</p>
+                            <div class="badge bg-success fs-5">Final Score: {{ best_score }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Final Scores Table -->
+            <div class="row justify-content-center mb-5">
+                <div class="col-lg-8">
+                    <div class="card shadow">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="mb-0">
+                                <i class="fas fa-chart-bar me-2"></i>Final Scores
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            {% if player_stats %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Player</th>
+                                            <th>Completed</th>
+                                            <th>Failed</th>
+                                            <th>Vetoed</th>
+                                            <th>Score</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for player in player_stats %}
+                                        <tr class="{% if player.username in winner_names %}table-warning fw-bold{% endif %}">
+                                            <td>
+                                                {% if player.rank == 1 %}
+                                                    <span class="badge bg-warning text-dark">🥇</span>
+                                                {% elif player.rank == 2 %}
+                                                    <span class="badge bg-secondary">🥈</span>
+                                                {% elif player.rank == 3 %}
+                                                    <span class="badge bg-warning">🥉</span>
+                                                {% else %}
+                                                    <span class="text-muted">{{ player.rank }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ player.username }}
+                                                {% if player.username in winner_names %}
+                                                    <i class="fas fa-crown text-warning ms-2"></i>
+                                                {% endif %}
+                                            </td>
+                                            <td><span class="badge bg-success">{{ player.completed }}</span></td>
+                                            <td><span class="badge bg-danger">{{ player.failed }}</span></td>
+                                            <td><span class="badge bg-secondary">{{ player.vetoed }}</span></td>
+                                            <td>
+                                                <strong class="{% if player.username in winner_names %}text-warning{% elif player.score > 0 %}text-success{% elif player.score < 0 %}text-danger{% else %}text-muted{% endif %}">
+                                                    {{ player.score }}
+                                                </strong>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center text-muted">
+                                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                                <p>No player statistics available.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Summary -->
+            <div class="row justify-content-center mb-5">
+                <div class="col-md-6">
+                    <div class="card shadow">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle me-2"></i>Game Summary
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h4 class="text-primary">{{ player_stats|length }}</h4>
+                                    <p class="text-muted">Players</p>
+                                </div>
+                                <div class="col-6">
+                                    <h4 class="text-success">{{ player_stats|sum(attribute='completed') }}</h4>
+                                    <p class="text-muted">Total Completed</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="row justify-content-center">
+                <div class="col-md-8 text-center">
+                    <div class="d-grid gap-3 d-md-block">
+                        <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-home me-2"></i>Back to Start
+                        </a>
+                        {% if session.get('admin_logged_in') %}
+                        <a href="{{ url_for('admin_menu') }}" class="btn btn-warning btn-lg">
+                            <i class="fas fa-cog me-2"></i>Admin Menu
+                        </a>
+                        {% endif %}
+                        <button onclick="window.print()" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-print me-2"></i>Print Results
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fun Stats -->
+            <div class="row justify-content-center mt-5">
+                <div class="col-md-8">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5 class="text-muted">
+                                <i class="fas fa-star me-2"></i>Thanks for playing Covert Agenda!
+                            </h5>
+                            <p class="mb-0">Hope you had fun completing those secret missions!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Print Styles -->
+<style>
+@media print {
+    .btn, .navbar, .footer {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+    }
+    .table {
+        border: 1px solid #000 !important;
+    }
+    .table th, .table td {
+        border: 1px solid #000 !important;
+    }
+}
+</style>
+{% endblock %} 

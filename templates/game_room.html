@@ -158,6 +158,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up periodic updates (only if game is active)
     {% if game.is_active %}
     playersUpdateInterval = setInterval(loadPlayers, 3000); // Update players list every 3 seconds
+    
+    // Check if game has ended every 5 seconds
+    const gameEndCheckInterval = setInterval(() => {
+        fetch(`/api/game_status/${gameId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error checking game status:', data.error);
+                } else if (!data.is_active) {
+                    // Game has ended, redirect to end game screen
+                    window.location.href = `/end_game_screen/${gameId}`;
+                }
+            })
+            .catch(error => {
+                console.error('Error checking game status:', error);
+            });
+    }, 5000);
     {% endif %}
 });
 
@@ -413,32 +430,14 @@ if (isAdmin) {
         .then(data => {
             if (data.message) {
                 showSuccess(data.message);
-                // Display detailed results
-                if (data.player_stats) {
-                    let resultsHtml = '<div class="mt-3"><h5>Final Results:</h5><ul class="list-group">';
-                    data.player_stats.forEach(player => {
-                        const isWinner = player.username === data.winner;
-                        const badgeClass = isWinner ? 'bg-warning' : 'bg-secondary';
-                        resultsHtml += `
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>${player.username}</span>
-                                <div>
-                                    <span class="badge ${badgeClass} me-2">Score: ${player.score}</span>
-                                    <small class="text-muted">
-                                        ✓${player.completed} ✗${player.failed} ⚠${player.vetoed}
-                                    </small>
-                                </div>
-                            </li>
-                        `;
-                    });
-                    resultsHtml += '</ul></div>';
-                    
-                    const alert = document.createElement('div');
-                    alert.className = 'alert alert-info alert-dismissible fade show';
-                    alert.innerHTML = resultsHtml + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
-                    document.querySelector('main').insertBefore(alert, document.querySelector('main').firstChild);
-                }
-                setTimeout(() => location.reload(), 5000);
+                // Redirect to end game screen after a short delay
+                setTimeout(() => {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        window.location.href = `/end_game_screen/${gameId}`;
+                    }
+                }, 2000);
             } else {
                 showError(data.error || 'Failed to end game');
             }
@@ -448,5 +447,20 @@ if (isAdmin) {
         });
     });
 }
+
+// Check if game has ended every 5 seconds
+const gameEndCheckInterval = setInterval(() => {
+    fetch(`${apiPrefix}/get_players/${gameId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error && data.error.includes('Game not found')) {
+                // Game might have ended, try to redirect to end game screen
+                window.location.href = `/end_game_screen/${gameId}`;
+            }
+        })
+        .catch(error => {
+            console.error('Error checking game status:', error);
+        });
+}, 5000);
 </script>
 {% endblock %} 
