@@ -3,6 +3,7 @@
 Verify Supabase connection string format
 """
 
+import os
 import re
 
 def verify_connection_string(uri):
@@ -50,16 +51,18 @@ def test_hostname_resolution(hostname):
         return False
 
 if __name__ == "__main__":
-    # Your connection string
-    uri = "postgresql://postgres:YH0mrQ4SnRMPCVVQ@db.hzbgujgfbhghihaibjwj.supabase.co:5432/postgres"
+    # Your connection string (replace with your actual URI)
+    uri = os.environ.get('DATABASE_URL', 'postgresql://postgres:your-password@db.your-project.supabase.co:5432/postgres')
     
     print("🚀 Supabase Connection String Verification")
     print("=" * 50)
     
     # Verify format
     if verify_connection_string(uri):
-        # Extract hostname
-        hostname = "db.hzbgujgfbhghihaibjwj.supabase.co"
+        # Extract hostname from the URI
+        pattern = r'postgresql://postgres:[^@]+@([^:]+):\d+/postgres'
+        match = re.match(pattern, uri)
+        hostname = match.group(1) if match else "db.your-project.supabase.co"
         
         print(f"\n🌐 Testing hostname resolution...")
         if test_hostname_resolution(hostname):

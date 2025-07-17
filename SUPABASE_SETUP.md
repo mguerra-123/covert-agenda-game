@@ -8,7 +8,7 @@ A cloud database that will store all your Covert Agenda game data (users, games,
 ### **Option A: Using Supabase SQL Editor (Recommended)**
 
 1. **Go to your Supabase Dashboard**
-   - Visit: https://supabase.com/dashboard/project/vqlmpgnzuhttzssuppkw
+   - Visit: https://supabase.com/dashboard
    - Click on your project
 
 2. **Open SQL Editor**
@@ -52,9 +52,9 @@ Once the database is set up, I'll help you:
 
 ## 🔑 **Your Supabase Configuration**
 
-- **Project URL**: `https://vqlmpgnzuhttzssuppkw.supabase.co`
-- **Anon Key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxbG1wZ256dWh0dHpzc3VwcGt3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExODcyNjYsImV4cCI6MjA2Njc2MzI2Nn0.XoRv990NNt4q-VkGE6cZ8m3WJu6pHKXLjHC_OZMTzRI`
-- **Service Key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxbG1wZ256dWh0dHpzc3VwcGt3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTE4NzI2NiwiZXhwIjoyMDY2NzYzMjY2fQ.yJPAGqgKBgMeNDVXfPUuGYHsbCFpJcOudRNbwg2HsMU`
+- **Project URL**: `your-supabase-project-url-here`
+- **Anon Key**: `your-anon-key-here`
+- **Service Key**: `your-service-key-here`
 
 ## 🚨 **Important Security Notes**
 

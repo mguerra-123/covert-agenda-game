@@ -7,8 +7,8 @@ from supabase.client import create_client, Client
 import os
 
 # Your Supabase configuration
-SUPABASE_URL = "https://vqlmpgnzuhttzssuppkw.supabase.co"
-SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxbG1wZ256dWh0dHpzc3VwcGt3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTE4NzI2NiwiZXhwIjoyMDY2NzYzMjY2fQ.yJPAGqgKBgMeNDVXfPUuGYHsbCFpJcOudRNbwg2HsMU"
+SUPABASE_URL = os.environ.get('SUPABASE_URL', 'your-supabase-url-here')
+SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', 'your-service-key-here')
 
 def setup_database():
     """Create all necessary tables for the Covert Agenda game"""

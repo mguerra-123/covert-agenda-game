@@ -3,12 +3,13 @@
 Create database tables using Supabase REST API with SQL execution
 """
 
+import os
 import requests
 import json
 
 # Your Supabase configuration
-SUPABASE_URL = "https://vqlmpgnzuhttzssuppkw.supabase.co"
-SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxbG1wZ256dWh0dHpzc3VwcGt3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTE4NzI2NiwiZXhwIjoyMDY2NzYzMjY2fQ.yJPAGqgKBgMeNDVXfPUuGYHsbCFpJcOudRNbwg2HsMU"
+SUPABASE_URL = os.environ.get('SUPABASE_URL', 'your-supabase-url-here')
+SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', 'your-service-key-here')
 
 def execute_sql_via_rest(sql):
     """Execute SQL via Supabase REST API"""

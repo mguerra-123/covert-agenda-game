@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Join Game - Covert Agenda{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header">
+                <h3 class="mb-0">
+                    <i class="fas fa-gamepad me-2"></i>Join Game
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    Enter your username to join the game. No password required!
+                </p>
+                
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Game Code</label>
+                        <input type="text" class="form-control" id="code" name="code" 
+                               value="{{ game_code }}" required maxlength="6" 
+                               pattern="[A-Za-z0-9]{6}" 
+                               title="Game code must be 6 characters long">
+                        <div class="form-text">Enter the 6-character game code</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" 
+                               required minlength="2" maxlength="20" 
+                               pattern="[A-Za-z0-9_-]+" 
+                               title="Username can only contain letters, numbers, underscores, and hyphens">
+                        <div class="form-text">Choose a username (2-20 characters)</div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-2"></i>Join Game
+                        </button>
+                    </div>
+                </form>
+                
+                <hr class="my-4">
+                
+                <div class="text-center">
+                    <p class="mb-2">Already have an account?</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-user me-2"></i>Login Instead
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

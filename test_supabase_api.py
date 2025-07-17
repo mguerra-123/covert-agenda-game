@@ -4,12 +4,14 @@ Test script to verify Supabase API connection
 Using the REST API instead of direct database connection
 """
 
-from supabase.client import create_client, Client
 import os
+from supabase import create_client, Client
 
-# Your Supabase configuration
-SUPABASE_URL = "https://vqlmpgnzuhttzssuppkw.supabase.co"
-SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxbG1wZ256dWh0dHpzc3VwcGt3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExODcyNjYsImV4cCI6MjA2Njc2MzI2Nn0.XoRv990NNt4q-VkGE6cZ8m3WJu6pHKXLjHC_OZMTzRI"
+# Use environment variables for security
+SUPABASE_URL = os.environ.get('SUPABASE_URL', 'your-supabase-url-here')
+SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY', 'your-supabase-anon-key-here')
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 def test_supabase_connection():
     """Test the Supabase API connection"""

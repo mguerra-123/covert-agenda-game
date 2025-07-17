@@ -72,7 +72,7 @@ A web-based multiplayer game where players complete social challenges while tryi
 
 5. **Access the game**
    - Open your browser and go to `http://127.0.0.1:5000`
-   - Use admin password: `admin123` (change this in production)
+   - Use admin password: `admin123` (change this in production - see deployment guide)
 
 ## 🎯 How to Play
 
