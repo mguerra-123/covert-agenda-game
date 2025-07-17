@@ -478,6 +478,16 @@ def index():
 def health_check():
     return jsonify({'status': 'healthy', 'database': 'supabase'})
 
+@app.route('/status')
+def status():
+    return jsonify({
+        'message': 'Covert Agenda is running!',
+        'status': 'success',
+        'version': '1.0.0',
+        'app': 'app_supabase.py',
+        'branch': 'simple-version'
+    })
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
