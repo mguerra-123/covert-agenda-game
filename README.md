@@ -1,6 +1,8 @@
-# Covert Agenda - Multiplayer Challenge Game
+# 🎭 Covert Agenda - Social Deception Game
 
-A web-based multiplayer game where players complete social challenges while trying to avoid detection. Features admin controls and a retro cyberpunk aesthetic.
+> **Ready for Vercel deployment from vercel-deploy branch!**
+
+A multiplayer social deception game where players complete secret missions without getting caught!
 
 ## 🎮 Two Versions Available
 
