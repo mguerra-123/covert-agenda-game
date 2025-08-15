@@ -455,7 +455,7 @@ def get_random_challenge():
     """Get a random challenge"""
     return Challenge.get_random()
 
-# Sample challenges for initialization
+# Sample challenges for initialization - Updated with new missions!
 SAMPLE_CHALLENGES = [
     "Get someone to say the word \"penguin\" in conversation",
     "Make someone high-five you twice in under a minute",
